@@ -13,7 +13,6 @@
 <p align="center">
   <img alt="Node 22+" src="https://img.shields.io/badge/node-22%2B-76b900" />
   <img alt="React 19" src="https://img.shields.io/badge/react-19-76b900" />
-  <img alt="Phase 2" src="https://img.shields.io/badge/phase%202-live%20fleet-76b900" />
 </p>
 
 <p align="center">
@@ -126,10 +125,9 @@ Every page's subtitle is a live status line — open incidents, the hottest node
 
 More in [`docs/screenshots`](docs/screenshots) (every page, light and dark).
 
-## Status
+## Live fleet or simulator
 
-**Phase 2: a live fleet backend.** On a host with a site config (`/etc/sparkman/fleet.json`), every page
-is real:
+**Live.** On a host with a site config (`/etc/sparkman/fleet.json`), every page is real:
 
 | Area | Where it comes from |
 |---|---|
@@ -144,7 +142,8 @@ is real:
 | AI Gateway, Usage, Keys | `sparkman-gateway`: one OpenAI- and Anthropic-compatible `/v1`, routed by model, with keys and per-request usage |
 | Benchmarks | decode, prefill, quality ([sparkDash](https://github.com/MiaAI-Lab/sparkDash)'s suite, vendored) and tool-eval ([tool-eval-bench](https://github.com/SeraphimSerapis/tool-eval-bench)) |
 
-Without a site config (dev, e2e) the console runs on the deterministic in-browser simulator, as in phase 1.
+**Simulator.** Without a site config (dev, e2e, the screenshots) the console runs on a deterministic in-browser
+simulator.
 Areas without a backend show **Not connected yet** rather than simulated data.
 
 The **Claude** and **Codex** pages drive the agents installed on the SparkMan host.
@@ -196,7 +195,8 @@ sudo tailscale serve --bg --set-path /v1 http://127.0.0.1:4200/v1     # the gate
 - **Gateway keys** are created on the Keys page; clients use `https://<host>.<tailnet>.ts.net/v1` with the key as
   a bearer token (or `x-api-key`).
 - **Update:** `./deploy/update.sh`. **Logs:** `journalctl -u sparkman -u sparkman-gateway -f`.
-- As a normal user, `./deploy/install.sh` installs a systemd *user* service instead (phase-1 behaviour).
+- As a normal user, `./deploy/install.sh` installs one systemd *user* service instead (the console and host
+  agents, without the separate gateway service; settings in `~/.config/sparkman`).
 - **Fans:** wiring, the serial protocol and the bridge are in [the cooling spec](docs/superpowers/specs/2026-10-09-sparkman-cooling-design.md#6-phase-2-the-sparkman-host--built-2026-11-03).
 
 ### Installing models
