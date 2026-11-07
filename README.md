@@ -22,7 +22,6 @@
   <img alt="Server: Hono" src="https://img.shields.io/badge/server-Hono-e36002?logo=hono&logoColor=white" />
   <img alt="State: SQLite" src="https://img.shields.io/badge/state-SQLite-003b57?logo=sqlite&logoColor=white" />
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue" /></a>
-  <a href="https://claude.com/claude-code"><img alt="Built with Claude Code" src="https://img.shields.io/badge/built%20with-Claude%20Code-d97757?logo=claude&logoColor=white" /></a>
 </p>
 
 <p align="center">
