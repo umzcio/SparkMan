@@ -1,0 +1,22 @@
+# systemd *system* unit for running SparkMan as root (deploy/install.sh uses it when run as root).
+# Fills in @DIR@, @PATH@ and @PNPM@ at install time.
+[Unit]
+Description=SparkMan fleet console (UI, fleet backend, Claude/Codex on the host)
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=@DIR@
+EnvironmentFile=/etc/sparkman/sparkman.env
+Environment=NODE_ENV=production
+Environment=HOME=/root
+Environment=PATH=@PATH@
+ExecStart=@PNPM@ serve
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

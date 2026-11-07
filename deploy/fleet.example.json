@@ -1,0 +1,64 @@
+{
+  "sshUser": "admin",
+  "sshKeyPath": "/root/.ssh/id_ed25519",
+  "leasesFile": "/etc/dnsmasq.fleet-hosts",
+  "stateDir": "/var/lib/fleet/hosts",
+  "toolsDir": "/opt/dgx_spark_management",
+  "nodes": [
+    {
+      "id": "spark-01",
+      "rack": {
+        "shelf": 1,
+        "slot": 1
+      },
+      "ring": "canary"
+    },
+    {
+      "id": "spark-02",
+      "rack": {
+        "shelf": 1,
+        "slot": 2
+      }
+    },
+    {
+      "id": "spark-03",
+      "rack": {
+        "shelf": 1,
+        "slot": 3
+      },
+      "ip": "10.0.0.13",
+      "ring": "ring2"
+    }
+  ],
+  "groups": [
+    {
+      "id": "pair-a",
+      "nodeIds": [
+        "spark-01",
+        "spark-02"
+      ]
+    }
+  ],
+  "switches": [
+    {
+      "id": "lan-switch",
+      "name": "lan-switch",
+      "role": "fleet",
+      "kind": "snmp",
+      "host": "10.0.0.2",
+      "secretFile": "/etc/sparkman/secrets/lan-switch-snmp",
+      "expectMbps": 10000
+    },
+    {
+      "id": "qsfp-switch",
+      "name": "qsfp-switch",
+      "role": "fabric",
+      "kind": "routeros",
+      "host": "10.0.0.3",
+      "user": "sparkman",
+      "secretFile": "/etc/sparkman/secrets/qsfp-switch",
+      "tlsFingerprint": "AA:BB:...",
+      "expectMbps": 200000
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+import { expect, test } from './fixtures.ts'
+
+test('create a key, see the secret once, then revoke it', async ({ page }) => {
+  await page.goto('/keys')
+  await expect(page.getByTestId('key-row')).toHaveCount(7)
+  await page.getByRole('button', { name: 'Create key' }).click()
+  const create = page.getByRole('button', { name: 'Create', exact: true })
+  await expect(create).toBeDisabled()
+  await page.getByLabel('Name').fill('playwright-agent')
+  await create.click()
+  await expect(page.getByTestId('new-secret')).toHaveText(/^sk-spark-[A-Za-z0-9]{32}$/)
+  await page.getByRole('button', { name: 'Done' }).click()
+  const row = page.getByTestId('key-row').filter({ hasText: 'playwright-agent' })
+  await expect(row).toBeVisible()
+  await expect(row).toContainText('never')
+  await row.getByRole('button', { name: 'Revoke' }).click()
+  await page.getByRole('button', { name: 'Revoke key' }).click()
+  await expect(row).toContainText('Revoked')
+  await expect(row.getByRole('button', { name: 'Revoke' })).toHaveCount(0)
+})

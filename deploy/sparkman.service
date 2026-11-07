@@ -1,0 +1,23 @@
+# systemd *user* unit: runs as the account whose Claude Code and Codex logins SparkMan uses.
+# Installed by deploy/install.sh (which fills in @DIR@ and @PATH@).
+[Unit]
+Description=SparkMan fleet console (UI + Claude/Codex on the host)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=@DIR@
+EnvironmentFile=%h/.config/sparkman/sparkman.env
+Environment=NODE_ENV=production
+# user services get a bare PATH; keep the one node, pnpm, claude and codex were found on at install time
+Environment=PATH=@PATH@
+ExecStart=@PNPM@ serve
+Restart=on-failure
+RestartSec=5
+# closes open agent sessions cleanly (SIGTERM → store.closeAll)
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,409 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-canvas: var(--canvas);
+  --color-surface-2: var(--surface-2);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-claude: var(--claude);
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --color-gpu: var(--gpu);
+  --color-cpu: var(--cpu);
+  --color-memory: var(--memory);
+  --color-power: var(--power);
+  --color-level-error: var(--level-error);
+  --color-level-warn: var(--level-warn);
+  --color-level-info: var(--level-info);
+  --color-level-debug: var(--level-debug);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+:root {
+  --radius: 0.625rem;
+  --canvas: #e4e8e0;
+  --background: #f7f8f6;
+  --foreground: #0f120e;
+  --card: #ffffff;
+  --card-foreground: #0f120e;
+  --popover: #ffffff;
+  --popover-foreground: #0f120e;
+  --primary: #76b900;
+  --primary-foreground: #0a0b0a;
+  --secondary: #eef0ec;
+  --secondary-foreground: #0f120e;
+  --muted: #eef0ec;
+  --muted-foreground: #5c6359;
+  --accent: #e6eae2;
+  --accent-foreground: #0f120e;
+  --destructive: #dc2626;
+  --border: rgb(15 18 14 / 0.1);
+  --input: rgb(15 18 14 / 0.14);
+  --ring: #4f7d00;
+  --brand: #4f7d00;
+  --brand-hover: #3f6600;
+  --claude: #d97757;
+  --surface-2: #f1f3ef;
+  --gpu: #4f7d00;
+  --cpu: #0f9488;
+  --memory: #7c3aed;
+  --power: #d97706;
+  --level-error: #dc2626;
+  --level-warn: #b45309;
+  --level-info: #3b5bdb;
+  --level-debug: #6b7280;
+  --cat-1: #4f7d00;
+  --cat-2: #0f9488;
+  --cat-3: #7c3aed;
+  --cat-4: #d97706;
+  --cat-5: #3b5bdb;
+  --cat-6: #db2777;
+  --cat-7: #64748b;
+  --chart-1: #4f7d00;
+  --chart-2: #0f9488;
+  --chart-3: #7c3aed;
+  --chart-4: #d97706;
+  --chart-5: #3b5bdb;
+  --sidebar: #f1f3ef;
+  --sidebar-foreground: #5c6359;
+  --sidebar-primary: #4f7d00;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e6eae2;
+  --sidebar-accent-foreground: #0f120e;
+  --sidebar-border: rgb(15 18 14 / 0.08);
+  --sidebar-ring: #4f7d00;
+}
+
+.dark {
+  --canvas: #050605;
+  --background: #0a0b0a;
+  --foreground: #edeeec;
+  --card: #111311;
+  --card-foreground: #edeeec;
+  --popover: #171a17;
+  --popover-foreground: #edeeec;
+  --primary: #76b900;
+  --primary-foreground: #0a0b0a;
+  --secondary: #1c201b;
+  --secondary-foreground: #edeeec;
+  --muted: #171a17;
+  --muted-foreground: #9ba19a;
+  --accent: #1c201b;
+  --accent-foreground: #edeeec;
+  --destructive: #f2545b;
+  --border: rgb(255 255 255 / 0.08);
+  --input: rgb(255 255 255 / 0.1);
+  --ring: #76b900;
+  --brand: #76b900;
+  --brand-hover: #8cd600;
+  --claude: #d97757;
+  --surface-2: #171a17;
+  --gpu: #76b900;
+  --cpu: #2dd4bf;
+  --memory: #a78bfa;
+  --power: #f5a524;
+  --level-error: #f2545b;
+  --level-warn: #f5a524;
+  --level-info: #5b7cfa;
+  --level-debug: #8a8f98;
+  --cat-1: #76b900;
+  --cat-2: #2dd4bf;
+  --cat-3: #a78bfa;
+  --cat-4: #f5a524;
+  --cat-5: #5b7cfa;
+  --cat-6: #f472b6;
+  --cat-7: #94a3b8;
+  --chart-1: #76b900;
+  --chart-2: #2dd4bf;
+  --chart-3: #a78bfa;
+  --chart-4: #f5a524;
+  --chart-5: #5b7cfa;
+  --sidebar: #0e100e;
+  --sidebar-foreground: #9ba19a;
+  --sidebar-primary: #76b900;
+  --sidebar-primary-foreground: #0a0b0a;
+  --sidebar-accent: #1c201b;
+  --sidebar-accent-foreground: #edeeec;
+  --sidebar-border: rgb(255 255 255 / 0.06);
+  --sidebar-ring: #76b900;
+}
+
+@layer base {
+  /* grid items may shrink below their content, so wide tables scroll inside their card instead of overflowing the page */
+  .grid > * {
+    min-width: 0;
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-canvas text-foreground font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  .animate-row-in {
+    animation: row-in 400ms ease-out;
+  }
+  /* one-shot entrance; set --i on the element for a 40ms stagger (capped by callers) */
+  .enter-fade-up {
+    animation: fade-up 260ms var(--ease-out-strong) both;
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+  .enter-fade {
+    animation: fade-in 220ms var(--ease-out-strong) both;
+  }
+  .enter-pop {
+    animation: pop-in 220ms var(--ease-out-strong) both;
+  }
+  .enter-page {
+    animation: fade-up 200ms var(--ease-out-strong) both;
+  }
+  /* soft attention ring for something waiting on the operator */
+  .attention-pulse {
+    animation: attention 2s ease-in-out infinite;
+  }
+  .shimmer-text {
+    background: linear-gradient(90deg, var(--muted-foreground) 0%, var(--foreground) 45%, var(--muted-foreground) 90%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 1.6s linear infinite;
+  }
+  .spin-slow {
+    animation: spin 2.4s linear infinite;
+  }
+  /* collapsible region: grid-rows 0fr → 1fr, toggle with data-open */
+  .collapsible {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows 220ms var(--ease-out-strong),
+      opacity 180ms var(--ease-out-strong);
+  }
+  .collapsible[data-open='true'] {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  .collapsible > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .draw-x {
+    animation: draw-x 320ms var(--ease-out-strong) both;
+  }
+}
+
+/* pressable feedback for every shadcn button (component files stay untouched) */
+[data-slot='button'] {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: 160ms;
+  transition-timing-function: var(--ease-out-strong);
+}
+[data-slot='button']:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* SparkMan's sparks: draw fast, flicker, die (hover = crackle, click = overcharge) */
+.spark-bolt {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  opacity: 0;
+  animation: spark-zap 460ms linear both;
+}
+.spark-bolt-big {
+  stroke-dasharray: 44;
+  stroke-dashoffset: 44;
+  animation: spark-zap-big 620ms linear both;
+}
+@keyframes spark-zap {
+  0% { opacity: 0; stroke-dashoffset: 24; }
+  12% { opacity: 1; stroke-dashoffset: 0; }
+  28% { opacity: 0.25; }
+  40% { opacity: 1; }
+  58% { opacity: 0.35; }
+  70% { opacity: 0.9; stroke-dashoffset: 0; }
+  100% { opacity: 0; stroke-dashoffset: -24; }
+}
+@keyframes spark-zap-big {
+  0% { opacity: 0; stroke-dashoffset: 44; }
+  10% { opacity: 1; stroke-dashoffset: 0; }
+  22% { opacity: 0.3; }
+  32% { opacity: 1; }
+  50% { opacity: 0.5; }
+  62% { opacity: 1; stroke-dashoffset: 0; }
+  100% { opacity: 0; stroke-dashoffset: -44; }
+}
+/* the shockwave on click */
+.spark-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spark-ring 520ms var(--ease-out-strong) both;
+}
+@keyframes spark-ring {
+  from { opacity: 0.9; transform: scale(0.6); stroke-width: 3; }
+  to { opacity: 0; transform: scale(2.6); stroke-width: 0.3; }
+}
+@keyframes overcharge {
+  0% { transform: scale(1); filter: brightness(1); }
+  25% { transform: scale(1.14) rotate(-4deg); filter: brightness(1.6) drop-shadow(0 0 8px var(--brand)); }
+  55% { transform: scale(0.96) rotate(2deg); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+@keyframes attention {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--level-warn) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--level-warn) 22%, transparent);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes draw-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    background-color: color-mix(in oklch, var(--brand) 12%, transparent);
+  }
+  to {
+    opacity: 1;
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Phones: tables marked data-stack become one card per row (see components/ui/table.tsx). Unlayered,
+   so it wins over the cells' utility classes; cells hidden with .hidden stay hidden. */
+@media (max-width: 767px) {
+  table[data-stack] > thead { display: none; }
+  table[data-stack], table[data-stack] > tbody, table[data-stack] > tfoot { display: block; width: 100%; }
+  table[data-stack] > tbody > tr, table[data-stack] > tfoot > tr { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.75rem 1rem; }
+  table[data-stack] > tbody > tr > td:not(.hidden), table[data-stack] > tfoot > tr > td:not(.hidden) {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 1rem; row-gap: 0.25rem;
+    width: auto; min-width: 0; padding: 0; text-align: right; white-space: normal; overflow-wrap: break-word;
+  }
+  table[data-stack] td[data-label]:not([data-label=""])::before {
+    content: attr(data-label); flex-shrink: 0; text-align: left; font-size: 0.75rem; color: var(--muted-foreground);
+  }
+  /* first cell is the card's title */
+  /* value groups (chips, badges) wrap at the right edge instead of breaking words */
+  table[data-stack] > tbody > tr > td:not(:first-child) > * { max-width: 100%; flex-wrap: wrap; justify-content: flex-end; }
+  table[data-stack] > tbody > tr > td:first-child:not(.hidden) { display: block; text-align: left; font-weight: 500; }
+  table[data-stack] > tbody > tr > td:first-child::before { display: none; }
+  table[data-stack] td[data-label=""]:not(:first-child) { justify-content: flex-end; }
+  table[data-stack] > tbody > tr > td:empty { display: none; }
+}

@@ -1,0 +1,22 @@
+# systemd *system* unit for SparkMan's model gateway (deploy/install.sh installs it when run as root).
+# Its own process so restarting the console never cuts off a request mid-stream.
+[Unit]
+Description=SparkMan model gateway (OpenAI/Anthropic-compatible /v1)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=@DIR@
+EnvironmentFile=/etc/sparkman/sparkman.env
+Environment=NODE_ENV=production
+Environment=HOME=/root
+Environment=PATH=@PATH@
+ExecStart=@PNPM@ gateway
+Restart=always
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target
