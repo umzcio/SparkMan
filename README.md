@@ -11,8 +11,18 @@
 </p>
 
 <p align="center">
-  <img alt="Node 22+" src="https://img.shields.io/badge/node-22%2B-76b900" />
-  <img alt="React 19" src="https://img.shields.io/badge/react-19-76b900" />
+  <img alt="NVIDIA DGX Spark · GB10" src="https://img.shields.io/badge/NVIDIA-DGX%20Spark%20%C2%B7%20GB10-76b900?logo=nvidia&logoColor=white" />
+  <img alt="Fabric: ConnectX-7, 200G RDMA" src="https://img.shields.io/badge/fabric-ConnectX--7%20%C2%B7%20200G%20RDMA-76b900?logo=nvidia&logoColor=white" />
+  <img alt="Fans: Raspberry Pi Pico" src="https://img.shields.io/badge/fans-Raspberry%20Pi%20Pico-a22846?logo=raspberrypi&logoColor=white" />
+  <img alt="Access: Tailscale" src="https://img.shields.io/badge/access-Tailscale-242424?logo=tailscale&logoColor=white" />
+  <br />
+  <img alt="Node 22+" src="https://img.shields.io/badge/node-22%2B-76b900?logo=nodedotjs&logoColor=white" />
+  <img alt="React 19" src="https://img.shields.io/badge/react-19-76b900?logo=react&logoColor=white" />
+  <img alt="TypeScript, strict" src="https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white" />
+  <img alt="Server: Hono" src="https://img.shields.io/badge/server-Hono-e36002?logo=hono&logoColor=white" />
+  <img alt="State: SQLite" src="https://img.shields.io/badge/state-SQLite-003b57?logo=sqlite&logoColor=white" />
+  <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue" /></a>
+  <a href="https://claude.com/claude-code"><img alt="Built with Claude Code" src="https://img.shields.io/badge/built%20with-Claude%20Code-d97757?logo=claude&logoColor=white" /></a>
 </p>
 
 <p align="center">
