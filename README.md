@@ -263,3 +263,7 @@ Vite · React 19 · TypeScript · Tailwind 4 · shadcn/ui · TanStack Router & Q
 Benchmark methodology after [sparkDash](https://github.com/MiaAI-Lab/sparkDash) (Apache-2.0), whose quality suite is vendored in `server/bench/vendor/sparkdash`; quality items sample GSM8K and MMLU (MIT); tool eval after [tool-eval-bench](https://github.com/SeraphimSerapis/tool-eval-bench) (MIT). Brand icons from [simple-icons](https://simpleicons.org) and [LobeHub Icons](https://github.com/lobehub/lobe-icons) (MIT). The SparkMan character was conceived in Midjourney and vectorized in Illustrator with Codex.
 
 Design notes: [`docs/superpowers/specs`](docs/superpowers/specs).
+
+## License
+
+[Apache License 2.0](LICENSE). The vendored sparkDash suite in `server/bench/vendor/sparkdash` keeps its own Apache-2.0 license.
