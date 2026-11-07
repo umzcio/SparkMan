@@ -73,6 +73,29 @@ describe('LogStore', () => {
     expect(s.query({ query: '', range: '7d' }, NOW).lines.map((l) => l.message)).toEqual(['fresh'])
   })
 
+  it('archives consecutive days whole, one file per host and day', async () => {
+    // a fractional "day" (node:sqlite binds numbers as REAL) made a group per line; on consecutive days a later
+    // group's window caught the next day's lines and overwrote the earlier file while every group deleted its lines
+    const s = new LogStore(':memory:')
+    const day1 = Math.floor((NOW - 10 * 86_400_000) / 86_400_000) * 86_400_000
+    const messages: string[] = []
+    for (const [d, h] of [[0, 1], [0, 9], [0, 23], [1, 0], [1, 12], [1, 22]]) {
+      const msg = `day${d + 1} ${h}h`
+      messages.push(msg)
+      s.add(line({ ts: day1 + d * 86_400_000 + h * 3_600_000, host: 'spark-01', message: msg }))
+    }
+    expect(await s.archive(dir, NOW)).toEqual({ files: 2, lines: 6 })
+    const read = (ts: number) => {
+      const ymd = new Date(ts).toISOString().slice(0, 10)
+      const folder = path.join(dir, 'spark-01', ymd.slice(0, 4), ymd.slice(5, 7))
+      const files = readdirSync(folder).filter((f) => f.startsWith(ymd))
+      expect(files).toHaveLength(1)
+      return gunzipSync(readFileSync(path.join(folder, files[0]))).toString().trim().split('\n').map((l) => (JSON.parse(l) as { message: string }).message)
+    }
+    expect([...read(day1), ...read(day1 + 86_400_000)]).toEqual(messages)
+    expect((s.db.prepare('SELECT count(*) AS n FROM logs').get() as { n: number }).n).toBe(0)
+  })
+
   it('keeps lines hot when the archive is missing', async () => {
     const s = new LogStore(':memory:')
     s.add(line({ ts: NOW - 9 * 86_400_000 }))

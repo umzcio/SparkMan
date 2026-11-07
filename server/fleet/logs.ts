@@ -222,25 +222,29 @@ export class LogStore {
     })
     if (probe) return { skipped: probe }
     const cutoff = Math.floor((now - HOT_DAYS * DAY) / DAY) * DAY
+    // node:sqlite binds a JS number as REAL: without the cast `ts / ?` is a fractional "day", every line its own
+    // group, and same-day groups overwrote each other's file while each deleted its lines (logs lost)
     const groups = this.db
-      .prepare('SELECT host, ts / ? AS day, count(*) AS n FROM logs WHERE ts < ? GROUP BY host, day')
+      .prepare('SELECT host, CAST(ts / ? AS INTEGER) AS day, count(*) AS n FROM logs WHERE ts < ? GROUP BY host, day')
       .all(DAY, cutoff) as { host: string; day: number; n: number }[]
     let files = 0
     let lines = 0
     for (const g of groups) {
       const dayStart = g.day * DAY
       const rows = this.db
-        .prepare('SELECT ts, level, source, host, service, message, pattern, attrs FROM logs WHERE host = ? AND ts >= ? AND ts < ? ORDER BY ts, id')
+        .prepare('SELECT id, ts, level, source, host, service, message, pattern, attrs FROM logs WHERE host = ? AND ts >= ? AND ts < ? ORDER BY ts, id')
         .all(g.host, dayStart, dayStart + DAY) as Record<string, unknown>[]
       if (!rows.length) continue
-      const body = rows.map((r) => JSON.stringify({ ...r, attrs: JSON.parse(String(r.attrs)) })).join('\n') + '\n'
+      const maxId = Math.max(...rows.map((r) => Number(r.id)))
+      const body = rows.map(({ id: _id, ...r }) => JSON.stringify({ ...r, attrs: JSON.parse(String(r.attrs)) })).join('\n') + '\n'
       const ymd = new Date(dayStart).toISOString().slice(0, 10)
       const target = path.join(dir, g.host.replace(/[^\w.-]/g, '_'), ymd.slice(0, 4), ymd.slice(5, 7))
       await mkdir(target, { recursive: true })
       const file = path.join(target, `${ymd}.${now}.jsonl.gz`)
       await writeFile(`${file}.tmp`, gzipSync(body))
       await rename(`${file}.tmp`, file)
-      this.db.prepare('DELETE FROM logs WHERE host = ? AND ts >= ? AND ts < ?').run(g.host, dayStart, dayStart + DAY)
+      // only what went into the file: a late line for this day arriving meanwhile waits for the next run
+      this.db.prepare('DELETE FROM logs WHERE host = ? AND ts >= ? AND ts < ? AND id <= ?').run(g.host, dayStart, dayStart + DAY, maxId)
       files++
       lines += rows.length
     }
