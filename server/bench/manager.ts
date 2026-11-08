@@ -208,7 +208,7 @@ export class BenchManager {
 
   private async quality(id: string, t: ResolvedTarget, cats: QualityCategory[], signal: AbortSignal): Promise<void> {
     const suiteCats = cats.map((c) => SUITE_CATEGORY[c])
-    const longSizes = suiteCats.includes('long') ? longSizesForContext([32768], t.contextLength || 32768) : []
+    const longSizes = suiteCats.includes('long') ? longSizesForContext([32768], t.contextLength || 32768).run : []
     const items: SuiteItem[] = generateSuite({ categories: suiteCats, longSizes, longItems: 2 })
     const byCat = new Map<QualityCategory, { items: SuiteItem[]; passed: boolean[]; scored: boolean[]; errors: number; tokens: number; hitMax: number }>()
     for (const c of cats) byCat.set(c, { items: items.filter((it) => it.category === SUITE_CATEGORY[c]), passed: [], scored: [], errors: 0, tokens: 0, hitMax: 0 })

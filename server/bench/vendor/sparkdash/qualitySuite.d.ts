@@ -14,6 +14,7 @@ export const SCORING_VERSION: number
 export const REQUEST_SEED: number
 export function generateSuite(opts?: { categories?: SuiteCategory[]; longSizes?: number[]; longItems?: number }): SuiteItem[]
 export function buildLongPrompt(item: SuiteItem): string
-export function longSizesForContext(sizes: number[], contextLength: number): number[]
+/** the sizes that fit the context with headroom (`run`) and those that do not (`skipped`) */
+export function longSizesForContext(sizes: number[], contextLength: number): { run: number[]; skipped: number[] }
 export function scoreItem(item: SuiteItem, reply: string): { ok: boolean; correct?: number; total?: number }
 export function visibleAnswer(text: string): string
