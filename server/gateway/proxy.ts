@@ -74,6 +74,16 @@ export class SseUsageTap {
   }
 }
 
+/** The log line for one proxied request (also how `pnpm logs:rebuild gateway` rebuilds them from the requests table). */
+export function requestLogLine(row: Pick<RequestRow, 'ts' | 'model' | 'nodeId' | 'path' | 'status' | 'latencyMs' | 'error'>, keyName: string | null): LogLine {
+  const level = row.status >= 500 ? 'error' : row.status >= 400 ? 'warn' : 'info'
+  const message = `POST /v1/${row.path} ${row.status} ${row.latencyMs}ms model=${row.model}${row.nodeId ? ` upstream=${row.nodeId}` : ''}${row.error ? ` ${row.error}` : ''}`
+  return {
+    id: '', ts: row.ts, level, source: 'gateway', host: 'gateway', service: 'gateway', message, pattern: patternOf('gateway', `${row.path} ${row.status} ${level}`),
+    attributes: { model: row.model, 'http.status_code': String(row.status), ...(row.nodeId ? { upstream: row.nodeId } : {}), ...(keyName ? { key: keyName } : {}) },
+  }
+}
+
 export interface GatewayOptions {
   now?: () => number
   fetch?: typeof fetch
@@ -123,13 +133,7 @@ export function createGatewayApp(db: GatewayDb, opts: GatewayOptions = {}): Hono
 
   const record = (row: RequestRow, keyName: string | null) => {
     db.addRequest(row)
-    if (!opts.log) return
-    const level = row.status >= 500 ? 'error' : row.status >= 400 ? 'warn' : 'info'
-    const message = `POST /v1/${row.path} ${row.status} ${row.latencyMs}ms model=${row.model}${row.nodeId ? ` upstream=${row.nodeId}` : ''}${row.error ? ` ${row.error}` : ''}`
-    opts.log({
-      id: '', ts: row.ts, level, source: 'gateway', host: 'gateway', service: 'gateway', message, pattern: patternOf('gateway', `${row.path} ${row.status} ${level}`),
-      attributes: { model: row.model, 'http.status_code': String(row.status), ...(row.nodeId ? { upstream: row.nodeId } : {}), ...(keyName ? { key: keyName } : {}) },
-    })
+    opts.log?.(requestLogLine(row, keyName))
   }
 
   const models = (c: Context) => {

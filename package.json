@@ -22,7 +22,8 @@
     "gateway": "NODE_ENV=production tsx server/gateway/main.ts",
     "user:set": "tsx server/user-cli.ts set",
     "user:remove": "tsx server/user-cli.ts remove",
-    "user:list": "tsx server/user-cli.ts list"
+    "user:list": "tsx server/user-cli.ts list",
+    "logs:rebuild": "tsx server/logs-cli.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.295",

@@ -204,6 +204,8 @@ sudo tailscale serve --bg --set-path /v1 http://127.0.0.1:4200/v1     # the gate
 - **Gateway keys** are created on the Keys page; clients use `https://<host>.<tailnet>.ts.net/v1` with the key as
   a bearer token (or `x-api-key`).
 - **Update:** `./deploy/update.sh`. **Logs:** `journalctl -u sparkman -u sparkman-gateway -f`.
+- **Log archive repair:** `pnpm logs:rebuild journal|gateway <first-day> <last-day> …` rewrites whole archived days
+  from each box's journal or the gateway's request history, and removes an old file only when every line is covered.
 - As a normal user, `./deploy/install.sh` installs one systemd *user* service instead (the console and host
   agents, without the separate gateway service; settings in `~/.config/sparkman`).
 - **Fans:** wiring, the serial protocol and the bridge are in [the cooling spec](docs/superpowers/specs/2026-10-09-sparkman-cooling-design.md#6-phase-2-the-sparkman-host--built-2026-11-03).
