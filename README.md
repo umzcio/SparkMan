@@ -148,7 +148,7 @@ More in [`docs/screenshots`](docs/screenshots) (every page, light and dark).
 | Deployments | discovered llama-swap / Ollama / vLLM / SGLang / TensorFold servers, plus single-node vLLM deployments SparkMan starts |
 | Cooling | the Pico over USB serial (`firmware/pico-fan`): SparkMan sets each fan every second and reads its RPM back |
 | Network | the switches listed in the site config, every 15 s: SNMPv3 (IF-MIB, BRIDGE-MIB, LLDP-MIB) or RouterOS REST, read-only accounts |
-| AI Gateway, Usage, Keys | `sparkman-gateway`: one OpenAI- and Anthropic-compatible `/v1`, routed by model, with keys and per-request usage |
+| AI Gateway, Usage, Keys | `sparkman-gateway`: one OpenAI- and Anthropic-compatible `/v1`, routed by model, with keys and per-request usage; traffic sent straight to an engine is counted from its `/metrics` and shown as *Direct to engine* |
 | Benchmarks | decode, prefill, quality ([sparkDash](https://github.com/MiaAI-Lab/sparkDash)'s suite, vendored) and tool-eval ([tool-eval-bench](https://github.com/SeraphimSerapis/tool-eval-bench)) |
 
 **Simulator.** Without a site config (dev, e2e, the screenshots) the console runs on a deterministic in-browser

@@ -47,12 +47,14 @@ export function UsagePage() {
           {(r) => {
             const chart = toUsageChart(r, groupBy)
             const totalTokens = r.tokensIn + r.tokensOut
+            // the server's "key" for traffic that went straight to an engine, not through the gateway
+            const direct = r.topKeys.find((k) => k.keyId === 'direct')
             return (
               <>
                 <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                   <StatTile className="enter-fade-up" style={stagger(0)} label="Tokens in" value={<Ticker value={r.tokensIn} format={(v) => (v == null ? '—' : formatCompact(v))} />} icon={ArrowDownToLine} hint={`prompt tokens · ${r.tokensIn ? Math.round((r.tokensCached / r.tokensIn) * 100) : 0}% from cache`} />
                   <StatTile className="enter-fade-up" style={stagger(1)} testId="tile-tokens-out" label="Tokens out" value={<Ticker value={r.tokensOut} format={(v) => (v == null ? '—' : formatCompact(v))} />} icon={ArrowUpFromLine} hint="completion tokens" />
-                  <StatTile className="enter-fade-up" style={stagger(2)} label="Requests" value={<Ticker value={r.requests} format={(v) => (v == null ? '—' : formatCompact(v))} />} icon={Send} />
+                  <StatTile className="enter-fade-up" style={stagger(2)} label="Requests" value={<Ticker value={r.requests} format={(v) => (v == null ? '—' : formatCompact(v))} />} icon={Send} hint={direct ? `${formatCompact(direct.requests)} straight to an engine` : 'through the gateway'} />
                   <StatTile className="enter-fade-up" style={stagger(3)} testId="tile-cost" label="Cloud equivalent" value={<Ticker value={r.cloudCostUsd} format={(v) => (v == null ? '—' : formatUsd(v))} />} icon={DollarSign} tone="brand" hint="at an assumed $3 / $0.30 / $15 per 1M prefill / cached / out tokens" />
                 </div>
                 <MetricChart title="Tokens" data={chart.data} series={chart.series} range={range} stacked height={260} format={(v) => formatCompact(v)} emptyText="No usage in this range" />
@@ -63,7 +65,7 @@ export function UsagePage() {
                   </CardHeader>
                   {r.topKeys.length === 0 ? (
                     <div className="p-4">
-                      <EmptyState title="No active API keys" description="Create a key under API Keys to attribute gateway traffic." />
+                      <EmptyState title="No traffic in this range" description="Requests through the gateway are listed by API key; traffic sent straight to an engine shows as Direct to engine." />
                     </div>
                   ) : (
                     <Table>

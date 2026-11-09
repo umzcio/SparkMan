@@ -1,6 +1,10 @@
 import type { GatewayPoint, ModelTokenTotals, TimeRange, UsagePoint, UsageReport } from '../../src/api/types.ts'
 import { RANGE_MS, SERIES_POINTS } from '../fleet/db.ts'
+import { SLOT_MS, type EngineCounts, type EngineUsageRow } from '../fleet/engine-usage.ts'
 import type { GatewayDb, RequestRow } from './store.ts'
+
+/** Usage's "key" for traffic the engines served that the gateway never saw */
+export const DIRECT_KEY = { id: 'direct', name: 'Direct to engine' }
 
 /** What the same tokens would cost on a frontier API, per million: input, cached input, output. */
 export const CLOUD_PRICE_PER_M = { input: 3, cached: 0.3, output: 15 }
@@ -53,42 +57,103 @@ export function recentTokensPerSec(db: GatewayDb, now: number): number {
   return db.requestsEndedBetween(now - 60_000, now + 1).reduce((s, r) => s + r.completionTokens, 0) / 60
 }
 
-export function usageReport(db: GatewayDb, range: TimeRange, now: number): UsageReport {
+/**
+ * The engines' own counts minus what the gateway logged for the same deployment: traffic that went straight to
+ * an engine. The gateway logs a request when it ends, the engine's counter moves then too, and the counters are
+ * read every 15 s, so a slot's gateway surplus (counted before the engine's sample caught up) is taken off the
+ * next slot instead of being lost.
+ */
+export function directUsage(engine: EngineUsageRow[], gateway: RequestRow[]): EngineUsageRow[] {
+  const FIELDS = ['prompt', 'cached', 'generated', 'requests'] as const
+  const zero = (): EngineCounts => ({ prompt: 0, cached: 0, generated: 0, requests: 0 })
+  const slots = new Map<string, Map<number, { e: EngineCounts; g: EngineCounts; model: string }>>()
+  const at = (dep: string, t: number, model: string) => {
+    const bySlot = slots.get(dep) ?? new Map()
+    slots.set(dep, bySlot)
+    const slot = Math.floor(t / SLOT_MS) * SLOT_MS
+    const s = bySlot.get(slot) ?? { e: zero(), g: zero(), model }
+    bySlot.set(slot, s)
+    return s
+  }
+  for (const r of engine) {
+    const s = at(r.deploymentId, r.t, r.model)
+    s.model = r.model
+    for (const f of FIELDS) s.e[f] += r[f]
+  }
+  for (const r of gateway) {
+    if (!r.deploymentId) continue
+    const s = at(r.deploymentId, r.ts + r.latencyMs, r.model)
+    s.g.prompt += r.promptTokens
+    s.g.cached += r.cachedTokens
+    s.g.generated += r.completionTokens
+    s.g.requests++
+  }
+  const out: EngineUsageRow[] = []
+  for (const [deploymentId, bySlot] of slots) {
+    let carry = zero()
+    let prev = -Infinity
+    for (const [t, { e, g, model }] of [...bySlot].sort(([a], [b]) => a - b)) {
+      if (t !== prev + SLOT_MS) carry = zero()
+      prev = t
+      const d = zero()
+      const next = zero()
+      for (const f of FIELDS) {
+        const v = e[f] - g[f] - carry[f]
+        if (v > 0) d[f] = v
+        // a surplus carries one slot only: an engine that never counts some of what the gateway logs must not
+        // hide later direct traffic
+        else next[f] = Math.max(0, g[f] - e[f])
+      }
+      carry = next
+      d.cached = Math.min(d.cached, d.prompt)
+      if (FIELDS.some((f) => d[f] > 0)) out.push({ t, deploymentId, model, ...d })
+    }
+  }
+  return out.sort((a, b) => a.t - b.t)
+}
+
+export function usageReport(db: GatewayDb, range: TimeRange, now: number, engine?: (from: number, to: number) => EngineUsageRow[]): UsageReport {
   const { start, step, times } = buckets(range, now)
-  const rows = db.requestsBetween(start, start + SERIES_POINTS * step).filter(served)
+  const end = start + SERIES_POINTS * step
+  const rows = db.requestsBetween(start, end).filter(served)
+  const direct = engine ? directUsage(engine(start, end), db.requestsEndedBetween(start, end).filter(served)) : []
   const keys = db.listKeys(now)
   const keyName = new Map(keys.map((k) => [k.id, k.name]))
-  const points: UsagePoint[] = bucketed(rows, start, step).map((b, i) => {
-    const byModel: Record<string, number> = {}
-    const byKey: Record<string, number> = {}
-    for (const r of b) {
-      byModel[r.model] = (byModel[r.model] ?? 0) + 1
-      if (r.keyId) byKey[r.keyId] = (byKey[r.keyId] ?? 0) + 1
-    }
-    return { t: times[i], requests: b.length, byModel, byKey }
-  })
+  const points: UsagePoint[] = Array.from({ length: SERIES_POINTS }, (_, i) => ({ t: times[i], requests: 0, byModel: {}, byKey: {} }))
   const totals = new Map<string, ModelTokenTotals>()
   const perKey = new Map<string, { tokens: number; requests: number }>()
   let tokensIn = 0
   let tokensCached = 0
   let tokensOut = 0
-  for (const r of rows) {
-    tokensIn += r.promptTokens
-    tokensCached += r.cachedTokens
-    tokensOut += r.completionTokens
-    const t = totals.get(r.model) ?? { model: r.model, requests: 0, prefill: 0, cached: 0, generated: 0 }
-    t.requests++
-    t.prefill += Math.max(0, r.promptTokens - r.cachedTokens)
-    t.cached += r.cachedTokens
-    t.generated += r.completionTokens
-    totals.set(r.model, t)
-    if (r.keyId) {
-      const k = perKey.get(r.keyId) ?? { tokens: 0, requests: 0 }
-      k.tokens += r.promptTokens + r.completionTokens
-      k.requests++
-      perKey.set(r.keyId, k)
+  let requests = 0
+  const add = (t: number, model: string, keyId: string | null, prompt: number, cached: number, generated: number, n: number) => {
+    const i = Math.floor((t - start) / step)
+    if (i < 0 || i >= SERIES_POINTS) return
+    const p = points[i]
+    const tokens = prompt + generated
+    p.requests += n
+    p.byModel[model] = (p.byModel[model] ?? 0) + tokens
+    if (keyId) p.byKey[keyId] = (p.byKey[keyId] ?? 0) + tokens
+    tokensIn += prompt
+    tokensCached += cached
+    tokensOut += generated
+    requests += n
+    const m = totals.get(model) ?? { model, requests: 0, prefill: 0, cached: 0, generated: 0 }
+    m.requests += n
+    m.prefill += Math.max(0, prompt - cached)
+    m.cached += cached
+    m.generated += generated
+    totals.set(model, m)
+    if (keyId) {
+      const k = perKey.get(keyId) ?? { tokens: 0, requests: 0 }
+      k.tokens += tokens
+      k.requests += n
+      perKey.set(keyId, k)
     }
   }
+  for (const r of rows) add(r.ts, r.model, r.keyId, r.promptTokens, r.cachedTokens, r.completionTokens, 1)
+  for (const d of direct) add(d.t, d.model, DIRECT_KEY.id, d.prompt, d.cached, d.generated, d.requests)
+  if (perKey.has(DIRECT_KEY.id)) keyName.set(DIRECT_KEY.id, DIRECT_KEY.name)
   const modelTotals = [...totals.values()].sort((a, b) => b.requests - a.requests)
   const cloudCostUsd = ((tokensIn - tokensCached) * CLOUD_PRICE_PER_M.input + tokensCached * CLOUD_PRICE_PER_M.cached + tokensOut * CLOUD_PRICE_PER_M.output) / 1e6
   return {
@@ -96,12 +161,12 @@ export function usageReport(db: GatewayDb, range: TimeRange, now: number): Usage
     tokensIn,
     tokensCached,
     tokensOut,
-    requests: rows.length,
+    requests,
     cloudCostUsd,
     topKeys: [...perKey.entries()].map(([keyId, v]) => ({ keyId, name: keyName.get(keyId) ?? keyId, ...v })).sort((a, b) => b.tokens - a.tokens).slice(0, 10),
     models: modelTotals.map((m) => m.model),
     modelTotals,
-    keys: keys.map((k) => ({ id: k.id, name: k.name })),
+    keys: [...keys.map((k) => ({ id: k.id, name: k.name })), ...(perKey.has(DIRECT_KEY.id) ? [DIRECT_KEY] : [])],
   }
 }
 

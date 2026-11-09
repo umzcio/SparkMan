@@ -227,7 +227,7 @@ export function mountFleet(app: Hono<any>, fleet: FleetService, gateway?: Gatewa
     }))
     app.get(`${base}/usage`, wrap((c) => {
       const r = range(c)
-      return r ? usageReport(gateway, r, Date.now()) : c.json({ error: 'Unknown range' }, 400)
+      return r ? usageReport(gateway, r, Date.now(), (from, to) => deps.engineUsage.rows(from, to)) : c.json({ error: 'Unknown range' }, 400)
     }))
     app.get(`${base}/keys`, wrap(() => gateway.listKeys()))
     app.post(`${base}/keys`, wrap(async (c) => {

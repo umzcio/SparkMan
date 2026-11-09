@@ -3,6 +3,7 @@ import { decodeSpeeds } from '../gateway/stats.ts'
 import type { GatewayDb, RouteTable, RouteTarget } from '../gateway/store.ts'
 import type { FleetDb } from './db.ts'
 import { generatedTokens, TokenCounters } from './engine-metrics.ts'
+import { engineCounts, EngineUsage } from './engine-usage.ts'
 import { LauncherManager } from './launchers.ts'
 import { shq } from './ssh.ts'
 
@@ -75,6 +76,8 @@ export class DeploymentManager {
   private rates: () => Map<string, { tokensPerSec: number; requestsPerSec: number }>
   /** generated tokens/s as the engines count them, so traffic that skips the gateway shows too */
   private counters = new TokenCounters()
+  /** prompt / cached / generated tokens and requests per minute as the engines count them (the Usage page) */
+  readonly engineUsage: EngineUsage
   /** single-request generation speed per deployment, from recent gateway requests */
   private speeds = new Map<string, number>()
   /** models the user's own scripts start (any engine, any number of nodes) */
@@ -89,6 +92,7 @@ export class DeploymentManager {
     this.fetch = opts.fetch ?? fetch
     this.rates = opts.rates ?? (() => new Map())
     db.db.exec('CREATE TABLE IF NOT EXISTS managed_deployments (id TEXT PRIMARY KEY, data TEXT NOT NULL)')
+    this.engineUsage = new EngineUsage(db.db)
     this.launchers = new LauncherManager(host, db, { now: this.now, fetch: this.fetch })
   }
 
@@ -217,17 +221,23 @@ export class DeploymentManager {
 
   /** Read each serving engine's token counter once (a launcher serving several models is one server). */
   private async sampleEngines(models: RouteTable['models']): Promise<void> {
-    const servers = new Map<string, string>()
-    for (const t of Object.values(models).flat()) {
-      // Ollama has no counter; llama-swap's would mix every model it fronts
-      if (t.engine !== 'Ollama' && t.engine !== 'llama-swap') servers.set(t.deploymentId, t.baseUrl.replace(/\/v1$/, '') + '/metrics')
+    const servers = new Map<string, { url: string; model: string }>()
+    for (const [name, targets] of Object.entries(models)) {
+      for (const t of targets) {
+        // Ollama has no counter; llama-swap's would mix every model it fronts
+        if (t.engine !== 'Ollama' && t.engine !== 'llama-swap' && !servers.has(t.deploymentId)) servers.set(t.deploymentId, { url: t.baseUrl.replace(/\/v1$/, '') + '/metrics', model: name })
+      }
     }
-    this.counters.keep(new Set(servers.keys()))
+    const ids = new Set(servers.keys())
+    this.counters.keep(ids)
+    this.engineUsage.keep(ids)
     const t = this.now()
     await Promise.all(
-      [...servers].map(async ([id, url]) => {
+      [...servers].map(async ([id, { url, model }]) => {
         const res = await this.fetch(url, { signal: AbortSignal.timeout(PROBE_MS) }).catch(() => null)
-        this.counters.record(id, t, res?.ok ? generatedTokens(await res.text().catch(() => '')) : null)
+        const text = res?.ok ? await res.text().catch(() => null) : null
+        this.counters.record(id, t, text === null ? null : generatedTokens(text))
+        this.engineUsage.record(id, model, t, text === null ? null : engineCounts(text))
       }),
     )
   }
