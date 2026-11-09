@@ -14,7 +14,9 @@ export function parseToolOutput(stdout: string): ToolOutput | null {
   if (start < 0) return null
   try {
     const v = JSON.parse(stdout.slice(start)) as ToolOutput
-    return typeof v === 'object' && v !== null && 'ok' in v ? v : null
+    if (typeof v !== 'object' || v === null || !('ok' in v)) return null
+    // the envelope maps over errors: a tool printing anything but an array there is treated as none
+    return { ...v, errors: Array.isArray(v.errors) ? v.errors : [] }
   } catch {
     return null
   }

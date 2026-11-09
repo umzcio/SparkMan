@@ -107,11 +107,13 @@ export class UpdateManager {
 
   start(): void {
     // first checks staggered so 7 boxes don't hit the mirrors at once
-    this.host.nodes().forEach((n, i) => setTimeout(() => void this.check(n.id), 30_000 + i * 20_000))
+    // unattended: a failed check is logged, never left as an unhandled rejection (which ends the process)
+    const check = (id: string) => this.check(id).catch((err: unknown) => console.error(`${id}: update check failed: ${(err as Error).message}`))
+    this.host.nodes().forEach((n, i) => setTimeout(() => void check(n.id), 30_000 + i * 20_000))
     this.timer = setInterval(() => {
       for (const n of this.host.nodes()) {
         const last = this.status(n.id)?.lastChecked ?? 0
-        if (this.now() - last > CHECK_EVERY_MS) void this.check(n.id)
+        if (this.now() - last > CHECK_EVERY_MS) void check(n.id)
       }
     }, 10 * 60_000)
   }

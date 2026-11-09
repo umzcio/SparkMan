@@ -100,7 +100,9 @@ export class FleetService {
             const rt = this.nodes.get(id)
             const status = rt ? this.statusOf(rt) : 'offline'
             const live = rt && (status === 'online' || status === 'degraded') ? this.live(rt) : null
-            return live ? { gpuTempC: live.gpuTempC, gpuUtil: live.gpuUtil } : null
+            // a node whose GPU didn't report (nvidia-smi failed, the GPU fell off the bus) is no data, not 0 °C
+            if (!live || rt?.point?.gpuTempC == null) return null
+            return { gpuTempC: live.gpuTempC, gpuUtil: live.gpuUtil }
           },
           away: (id) => {
             const rt = this.nodes.get(id)
@@ -337,7 +339,13 @@ export class FleetService {
         rt.retryMs = 2000
         return
       }
-      if (isRawSample(v) && rt.facts) this.onSample(rt, v)
+      if (!isRawSample(v) || !rt.facts) return
+      try {
+        this.onSample(rt, v)
+      } catch (err) {
+        // a sample missing a field derivePoint needs: skip it rather than let the throw end the process
+        console.error(`${rt.host.id}: bad sample skipped: ${(err as Error).message}`)
+      }
     })
     child.stderr.resume()
     child.on('close', () => {
@@ -514,7 +522,8 @@ export class FleetService {
     this.require(id)
     this.db.set(`maintenance:${id}`, on ? '1' : null)
     this.db.set(`drained:${id}`, on ? '1' : null)
-    void this.deployments?.refresh()
+    this.deployments?.republish()
+    void this.deployments?.refresh().catch(() => {})
     this.db.addActivity('maintenance', `${id} ${on ? 'entered maintenance: alerts muted, drained' : 'left maintenance'}`, id)
     this.alerts.evaluate(this.nodeStates())
     this.changed('nodes')
@@ -525,8 +534,9 @@ export class FleetService {
   setNodeDrained(id: string, drained: boolean): void {
     this.require(id)
     this.db.set(`drained:${id}`, drained ? '1' : null)
-    // drained nodes leave the gateway's routes at once
-    void this.deployments?.refresh()
+    // drained nodes leave the gateway's routes before this returns; the full refresh follows
+    this.deployments?.republish()
+    void this.deployments?.refresh().catch(() => {})
     this.db.addActivity('drain', `${id} ${drained ? 'drained' : 'returned to service'}`, id)
     this.changed('nodes')
     this.changed('activity')

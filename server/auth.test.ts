@@ -95,4 +95,18 @@ describe('sign-in', () => {
     writeUser(usersFile, 'admin', null)
     expect(auth.check(fresh)).toBeNull()
   })
+
+  it('a password reset ends the sessions signed in with the old password', () => {
+    const { auth, usersFile } = setup()
+    const before = auth.login('admin', 'correct horse battery')!
+    writeUser(usersFile, 'admin', 'new staple')
+    expect(auth.check(before)).toBeNull()
+    expect(auth.check(auth.login('admin', 'new staple')!)).toBe('admin')
+  })
+
+  it('refuses account names that would change the users object instead', () => {
+    const { auth, usersFile } = setup()
+    expect(() => writeUser(usersFile, '__proto__', 'x')).toThrow()
+    expect(auth.login('constructor', 'x')).toBeNull()
+  })
 })

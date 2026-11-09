@@ -50,6 +50,8 @@ export function readUsers(file: string): Record<string, UserRecord> {
 }
 
 export function writeUser(file: string, username: string, password: string | null): void {
+  // assigning these on a plain object changes its prototype instead of adding an account
+  if (['__proto__', 'constructor', 'prototype'].includes(username)) throw new Error(`"${username}" can't be an account name`)
   const users = readUsers(file)
   if (password === null) delete users[username]
   else users[username] = { hash: hashPassword(password) }
@@ -59,7 +61,14 @@ export function writeUser(file: string, username: string, password: string | nul
 interface SessionRecord {
   user: string
   expires: number
+  /** which password it was signed in with: a reset (or removing the account) ends the session */
+  pw?: string
 }
+
+/** an account's current password, as a session is bound to it */
+const passwordTag = (u: UserRecord) => sha(u.hash).slice(0, 16)
+/** own keys only: an account called `constructor` or `__proto__` is just a name */
+const userOf = (users: Record<string, UserRecord>, name: string): UserRecord | undefined => (Object.hasOwn(users, name) ? users[name] : undefined)
 
 export class AuthStore {
   private sessions = new Map<string, SessionRecord>()
@@ -94,14 +103,14 @@ export class AuthStore {
 
   /** A session token for good credentials, null otherwise. */
   login(username: string, password: string): string | null {
-    const user = readUsers(this.usersFile)[username]
+    const user = userOf(readUsers(this.usersFile), username)
     const ok = verifyPassword(password, user?.hash ?? DUMMY) && user !== undefined
-    if (!ok) {
+    if (!ok || !user) {
       this.failures.push(this.now())
       return null
     }
     const token = randomBytes(32).toString('base64url')
-    this.sessions.set(sha(token), { user: username, expires: this.now() + SESSION_TTL_MS })
+    this.sessions.set(sha(token), { user: username, expires: this.now() + SESSION_TTL_MS, pw: passwordTag(user) })
     this.save()
     return token
   }
@@ -112,7 +121,13 @@ export class AuthStore {
     const key = sha(token)
     const s = this.sessions.get(key)
     if (!s) return null
-    if (s.expires <= this.now() || !(s.user in readUsers(this.usersFile))) {
+    const user = userOf(readUsers(this.usersFile), s.user)
+    // sessions saved before they were bound to a password: bind them to the current one
+    if (user && s.pw === undefined) {
+      s.pw = passwordTag(user)
+      this.save()
+    }
+    if (s.expires <= this.now() || !user || s.pw !== passwordTag(user)) {
       this.sessions.delete(key)
       this.save()
       return null

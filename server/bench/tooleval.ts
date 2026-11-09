@@ -60,6 +60,7 @@ export function runToolEval(
       } catch {
         return
       }
+      if (typeof e !== 'object' || e === null) return
       if (e.event === 'scenario_start' && e.scenario_id && isCategory(e.category)) category.set(e.scenario_id, e.category)
       if (e.event === 'scenario_result' && e.scenario_id && isStatus(e.status)) {
         const cat = category.get(e.scenario_id)

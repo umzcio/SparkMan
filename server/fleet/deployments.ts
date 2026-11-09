@@ -97,8 +97,10 @@ export class DeploymentManager {
   }
 
   start(): void {
-    void this.refresh()
-    this.timer = setInterval(() => void this.refresh(), 15_000)
+    // unattended: a failed refresh is logged and retried on the next tick, never an unhandled rejection
+    const refresh = () => this.refresh().catch((err: unknown) => console.error(`deployments: refresh failed: ${(err as Error).message}`))
+    void refresh()
+    this.timer = setInterval(() => void refresh(), 15_000)
   }
 
   stop(): void {
@@ -219,6 +221,15 @@ export class DeploymentManager {
     this.host.changed('deployments')
   }
 
+  /**
+   * Republish the routes from what's already known, synchronously: a drained node is out of the gateway's table
+   * before the drain call returns (the gateway reads the table on every request), not at the next refresh.
+   */
+  republish(): void {
+    this.publishRoutes()
+    this.host.changed('deployments')
+  }
+
   /** Read each serving engine's token counter once (a launcher serving several models is one server). */
   private async sampleEngines(models: RouteTable['models']): Promise<void> {
     const servers = new Map<string, { url: string; model: string }>()
@@ -246,7 +257,8 @@ export class DeploymentManager {
     // just after SparkMan starts no node has reported yet: one that hasn't is not down, or the first table routes nothing
     const settling = this.now() - this.startedAt < STARTUP_GRACE_MS
     const drained = new Set(this.host.nodes().filter((n) => n.drained || (n.status !== 'online' && n.status !== 'degraded' && !(settling && n.reported === false))).map((n) => n.id))
-    const models: RouteTable['models'] = {}
+    // no prototype: an engine reporting a model called `constructor` or `__proto__` is just a name
+    const models: RouteTable['models'] = Object.create(null) as RouteTable['models']
     const add = (name: string, t: RouteTarget) => {
       if (t.nodeIds.some((id) => drained.has(id))) return
       ;(models[name] ??= []).push(t)

@@ -301,6 +301,8 @@ export class LogCollector {
       } catch {
         return
       }
+      // journalctl only prints objects; anything else (a stray `null`) is skipped, not dereferenced
+      if (typeof e !== 'object' || e === null || Array.isArray(e)) return
       const line = journalToLine(t.id, e)
       if (line) {
         this.store.add(line)

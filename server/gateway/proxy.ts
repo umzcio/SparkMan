@@ -128,7 +128,7 @@ export function createGatewayApp(db: GatewayDb, opts: GatewayOptions = {}): Hono
   const targetsFor = (model: string): RouteTarget[] => {
     const table = db.routes()
     if (now() - table.updatedAt > (opts.maxRouteAgeMs ?? 5 * 60_000)) return []
-    return [...(table.models[model] ?? [])].sort((a, b) => (inflight.get(a.baseUrl) ?? 0) - (inflight.get(b.baseUrl) ?? 0))
+    return [...(Object.hasOwn(table.models, model) ? table.models[model] : [])].sort((a, b) => (inflight.get(a.baseUrl) ?? 0) - (inflight.get(b.baseUrl) ?? 0))
   }
 
   const record = (row: RequestRow, keyName: string | null) => {

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
-import { request } from 'node:https'
+import { request } from 'node:http'
+import { connect as tlsConnect, type TLSSocket } from 'node:tls'
 import snmp, { type Session, type Varbind } from 'net-snmp'
 import type { SwitchHealthReading, SwitchHealthStatus, SwitchPort } from '../../src/api/types.ts'
 
@@ -237,6 +238,8 @@ const pct = (v: number): SwitchHealthStatus => (v >= 95 ? 'bad' : v >= 85 ? 'war
 /** link monitor (rate, module) is a heavier call: once every few polls */
 const MONITOR_EVERY = 4
 const REST_TIMEOUT_MS = 8000
+/** far above any real reply (a bridge host table of thousands of MACs is well under 1 MB) */
+const MAX_REST_BYTES = 16e6
 
 type Row = Record<string, string | undefined>
 
@@ -250,21 +253,47 @@ class RouterOsReader implements SwitchReader {
 
   close(): void {}
 
-  private call(method: 'GET' | 'POST', path: string, body?: unknown): Promise<unknown> {
+  /**
+   * The switch's certificate is self-signed, so it's pinned by its SHA-256 fingerprint. The pin is checked on a
+   * bare TLS connection before anything is sent: the request (and the password in it) is only written to a
+   * socket whose certificate matched. Without a pin nothing is sent.
+   */
+  private connect(): Promise<TLSSocket> {
+    const hex = (s: string) => s.replace(/:/g, '').toUpperCase()
+    const pin = this.cfg.tlsFingerprint ? hex(this.cfg.tlsFingerprint) : ''
+    if (!/^[0-9A-F]{64}$/.test(pin)) return Promise.reject(new Error('RouterOS switch needs tlsFingerprint (the certificate\'s SHA-256) in the site config'))
+    return new Promise((resolve, reject) => {
+      const sock = tlsConnect({ host: this.cfg.host, port: 443, rejectUnauthorized: false, timeout: REST_TIMEOUT_MS })
+      sock.once('secureConnect', () => {
+        const fp = sock.getPeerCertificate().fingerprint256 ?? ''
+        if (hex(fp) === pin) return resolve(sock)
+        sock.destroy()
+        reject(new Error(`TLS fingerprint ${fp} is not the pinned one`))
+      })
+      sock.once('timeout', () => sock.destroy(new Error('TLS connect timed out')))
+      sock.once('error', reject)
+    })
+  }
+
+  private async call(method: 'GET' | 'POST', path: string, body?: unknown): Promise<unknown> {
+    const sock = await this.connect()
     const password = readFileSync(this.cfg.secretFile, 'utf8').trim()
     const auth = Buffer.from(`${this.cfg.user ?? 'sparkman'}:${password}`).toString('base64')
     const data = body === undefined ? undefined : JSON.stringify(body)
-    const hex = (s: string) => s.replace(/:/g, '').toUpperCase()
-    const pin = this.cfg.tlsFingerprint ? hex(this.cfg.tlsFingerprint) : null
     return new Promise((resolve, reject) => {
       const req = request({
-        host: this.cfg.host, port: 443, method, path: `/rest${path}`, timeout: REST_TIMEOUT_MS,
-        // a self-signed certificate: pinned by fingerprint when configured
-        rejectUnauthorized: false,
+        host: this.cfg.host, method, path: `/rest${path}`, timeout: REST_TIMEOUT_MS,
+        // the already verified socket (with no agent, so it is used as is)
+        createConnection: () => sock,
         headers: { authorization: `Basic ${auth}`, accept: 'application/json', ...(data ? { 'content-type': 'application/json', 'content-length': Buffer.byteLength(data) } : {}) },
       }, (res) => {
         const chunks: Buffer[] = []
-        res.on('data', (c: Buffer) => chunks.push(c))
+        let size = 0
+        res.on('data', (c: Buffer) => {
+          size += c.length
+          if (size > MAX_REST_BYTES) return req.destroy(new Error(`${method} ${path}: reply over ${MAX_REST_BYTES / 1e6} MB`))
+          chunks.push(c)
+        })
         res.on('end', () => {
           const text = Buffer.concat(chunks).toString('utf8')
           if ((res.statusCode ?? 500) >= 400) return reject(new Error(`${method} ${path}: HTTP ${res.statusCode} ${text.slice(0, 120)}`))
@@ -275,10 +304,6 @@ class RouterOsReader implements SwitchReader {
           }
         })
       })
-      req.on('socket', (sock) => sock.once('secureConnect', () => {
-        const fp = (sock as import('node:tls').TLSSocket).getPeerCertificate().fingerprint256
-        if (pin && hex(fp) !== pin) req.destroy(new Error(`TLS fingerprint ${fp} is not the pinned one`))
-      }))
       req.on('timeout', () => req.destroy(new Error(`${method} ${path}: timed out`)))
       req.on('error', reject)
       if (data) req.write(data)
