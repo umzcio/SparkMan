@@ -1,6 +1,7 @@
 # Notes for AI agents working on this fleet
 
 - **Installing or serving a model**: follow `docs/playbooks/model-install.md` step by step, with its checks.
+- **Testing or benchmarking a model** (only with the operator's go): `docs/playbooks/model-eval.md`.
 - **This site's specifics** (hosts, models library, node groups, fabric addresses, recipe folders, where credentials
   live, hardware quirks): `/etc/sparkman/site-notes.md` on the SparkMan host. Read it first. It is deliberately not
   in this repository; never copy hostnames, addresses or personal details into the repo.

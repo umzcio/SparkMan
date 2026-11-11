@@ -216,6 +216,11 @@ sudo tailscale serve --bg --set-path /v1 http://127.0.0.1:4200/v1     # the gate
 multi-node prerequisites, first start, SparkMan launcher), written so an AI agent can follow it. Site specifics go
 in `/etc/sparkman/site-notes.md` next to the site config, not in the repo.
 
+### Evaluating models
+
+`docs/playbooks/model-eval.md` sets which tests run when (a serving check per deployment, quick quality per build,
+a fixed capability suite per model) and how two results are compared item by item.
+
 ## The simulator
 
 - 12 nodes, seeded and ticking every 2 s. The top shelf mirrors a real rack, left to right: an ASUS Ascent GX10, four DGX Sparks and two Dell Pro Max GB10s; shelf 2 is placeholder.
